@@ -15,6 +15,11 @@ pub struct PipelineId {
     value: u64,
 }
 
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
+pub struct MrIid {
+    value: u64,
+}
+
 impl ProjectId {
     pub fn new(id: u64) -> Self {
         Self { value: id }
@@ -28,6 +33,12 @@ impl PipelineId {
 }
 
 impl JobId {
+    pub fn new(id: u64) -> Self {
+        Self { value: id }
+    }
+}
+
+impl MrIid {
     pub fn new(id: u64) -> Self {
         Self { value: id }
     }
@@ -63,6 +74,16 @@ impl<'de> Deserialize<'de> for JobId {
     }
 }
 
+impl<'de> Deserialize<'de> for MrIid {
+    fn deserialize<D>(deserializer: D) -> Result<MrIid, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let id = u64::deserialize(deserializer)?;
+        Ok(MrIid::new(id))
+    }
+}
+
 impl std::fmt::Display for ProjectId {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.value)
@@ -76,6 +97,12 @@ impl std::fmt::Display for PipelineId {
 }
 
 impl std::fmt::Display for JobId {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.value)
+    }
+}
+
+impl std::fmt::Display for MrIid {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.value)
     }
