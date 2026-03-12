@@ -68,6 +68,22 @@ fn main() -> Result<()> {
         config.gitlab_url = url.into();
     }
 
+    // Validate that credentials are available from some source
+    if config.gitlab_token.is_empty() {
+        eprintln!("Error: GitLab token is not configured.\n");
+        eprintln!("Set it via environment variable:  export GITLAB_TOKEN=<your-token>");
+        eprintln!("Or add to config file ({}):", config_path.display());
+        eprintln!("  gitlab_token = \"<your-token>\"");
+        exit(1);
+    }
+    if config.gitlab_url.is_empty() {
+        eprintln!("Error: GitLab URL is not configured.\n");
+        eprintln!("Set it via environment variable:  export GITLAB_URL=https://gitlab.com");
+        eprintln!("Or add to config file ({}):", config_path.display());
+        eprintln!("  gitlab_url = \"https://gitlab.com\"");
+        exit(1);
+    }
+
     // Create a shared runtime for async operations
     let rt = tokio::runtime::Runtime::new().map_err(|e| {
         crate::result::GlimError::GeneralError(format!("Failed to create runtime: {e}").into())
