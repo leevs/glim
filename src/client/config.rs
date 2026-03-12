@@ -3,7 +3,7 @@
 use std::{path::PathBuf, time::Duration};
 
 use chrono::{DateTime, Utc};
-use compact_str::CompactString;
+use compact_str::{format_compact, CompactString};
 
 use super::error::{ClientError, Result};
 use crate::glim_app::GlimConfig;
@@ -242,7 +242,13 @@ impl ClientConfig {
 
 impl From<GlimConfig> for ClientConfig {
     fn from(config: GlimConfig) -> Self {
-        Self::new(config.gitlab_url, config.gitlab_token).with_search_filter(config.search_filter)
+        let url = config.gitlab_url.trim_end_matches('/');
+        let base_url: CompactString = if url.ends_with("/api/v4") {
+            url.into()
+        } else {
+            format_compact!("{}/api/v4", url)
+        };
+        Self::new(base_url, config.gitlab_token).with_search_filter(config.search_filter)
     }
 }
 
@@ -360,9 +366,51 @@ mod tests {
         };
 
         let client_config = ClientConfig::from(glim_config);
-        assert_eq!(client_config.base_url, "https://gitlab.example.com");
+        assert_eq!(client_config.base_url, "https://gitlab.example.com/api/v4");
         assert_eq!(client_config.private_token, "test-token");
         assert_eq!(client_config.search_filter, Some("test".into()));
+    }
+
+    #[test]
+    fn test_from_glim_config_url_normalization() {
+        // Bare URL without /api/v4 should be normalized
+        let config = GlimConfig {
+            gitlab_url: "https://gitlab.example.com".into(),
+            gitlab_token: "test-token".into(),
+            search_filter: None,
+            log_level: None,
+            animations: false,
+        };
+        assert_eq!(
+            ClientConfig::from(config).base_url,
+            "https://gitlab.example.com/api/v4"
+        );
+
+        // URL already ending with /api/v4 should not be doubled
+        let config = GlimConfig {
+            gitlab_url: "https://gitlab.example.com/api/v4".into(),
+            gitlab_token: "test-token".into(),
+            search_filter: None,
+            log_level: None,
+            animations: false,
+        };
+        assert_eq!(
+            ClientConfig::from(config).base_url,
+            "https://gitlab.example.com/api/v4"
+        );
+
+        // Trailing slash should be stripped before normalization
+        let config = GlimConfig {
+            gitlab_url: "https://gitlab.example.com/".into(),
+            gitlab_token: "test-token".into(),
+            search_filter: None,
+            log_level: None,
+            animations: false,
+        };
+        assert_eq!(
+            ClientConfig::from(config).base_url,
+            "https://gitlab.example.com/api/v4"
+        );
     }
 
     #[test]

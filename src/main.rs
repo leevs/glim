@@ -53,12 +53,20 @@ fn main() -> Result<()> {
 
     let debug = std::env::var("GLIM_DEBUG").is_ok();
 
-    let config = if config_path.exists() {
+    let mut config = if config_path.exists() {
         confy::load_path(&config_path)
             .map_err(|e| crate::result::GlimError::config_load_error(config_path.clone(), e))?
     } else {
         GlimConfig::default()
     };
+
+    // Allow env vars to override config file values
+    if let Ok(token) = std::env::var("GITLAB_TOKEN") {
+        config.gitlab_token = token.into();
+    }
+    if let Ok(url) = std::env::var("GITLAB_URL") {
+        config.gitlab_url = url.into();
+    }
 
     // Create a shared runtime for async operations
     let rt = tokio::runtime::Runtime::new().map_err(|e| {
