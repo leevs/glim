@@ -2,33 +2,33 @@ use serde::{Deserialize, Deserializer};
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
 pub struct JobId {
-    value: u32,
+    value: u64,
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct ProjectId {
-    value: u32,
+    value: u64,
 }
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq)]
 pub struct PipelineId {
-    value: u32,
+    value: u64,
 }
 
 impl ProjectId {
-    pub fn new(id: u32) -> Self {
+    pub fn new(id: u64) -> Self {
         Self { value: id }
     }
 }
 
 impl PipelineId {
-    pub fn new(id: u32) -> Self {
+    pub fn new(id: u64) -> Self {
         Self { value: id }
     }
 }
 
 impl JobId {
-    pub fn new(id: u32) -> Self {
+    pub fn new(id: u64) -> Self {
         Self { value: id }
     }
 }
@@ -38,7 +38,7 @@ impl<'de> Deserialize<'de> for ProjectId {
     where
         D: Deserializer<'de>,
     {
-        let id = u32::deserialize(deserializer)?;
+        let id = u64::deserialize(deserializer)?;
         Ok(ProjectId::new(id))
     }
 }
@@ -48,7 +48,7 @@ impl<'de> Deserialize<'de> for PipelineId {
     where
         D: Deserializer<'de>,
     {
-        let id = u32::deserialize(deserializer)?;
+        let id = u64::deserialize(deserializer)?;
         Ok(PipelineId::new(id))
     }
 }
@@ -58,7 +58,7 @@ impl<'de> Deserialize<'de> for JobId {
     where
         D: Deserializer<'de>,
     {
-        let id = u32::deserialize(deserializer)?;
+        let id = u64::deserialize(deserializer)?;
         Ok(JobId::new(id))
     }
 }
