@@ -39,8 +39,10 @@ pub struct GlimApp {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct GlimConfig {
     /// The URL of the GitLab instance
+    #[serde(default)]
     pub gitlab_url: CompactString,
     /// The Personal Access Token to authenticate with GitLab
+    #[serde(default)]
     pub gitlab_token: CompactString,
     /// Filter applied to the projects list
     pub search_filter: Option<CompactString>,
