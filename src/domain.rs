@@ -69,7 +69,8 @@ pub struct ProjectDto {
     pub id: ProjectId,
     pub path_with_namespace: CompactString,
     pub description: Option<CompactString>,
-    pub default_branch: CompactString,
+    #[serde(default)]
+    pub default_branch: Option<CompactString>,
     pub ssh_url_to_repo: CompactString,
     pub web_url: CompactString,
     pub last_activity_at: DateTime<Utc>,
@@ -86,7 +87,9 @@ pub struct StatisticsDto {
 
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct CommitDto {
+    #[serde(default)]
     pub title: CompactString,
+    #[serde(default)]
     pub author_name: CompactString,
 }
 
@@ -95,7 +98,8 @@ pub struct JobDto {
     pub id: JobId,
     pub name: CompactString,
     pub stage: CompactString,
-    pub commit: CommitDto,
+    #[serde(default)]
+    pub commit: Option<CommitDto>,
     pub status: PipelineStatus,
     pub created_at: DateTime<Utc>,
     pub started_at: Option<DateTime<Utc>>,
@@ -155,6 +159,8 @@ pub enum PipelineSource {
     Trigger,
     Web,
     Webide,
+    #[serde(other)]
+    Unknown,
 }
 
 impl PipelineSource {
@@ -175,6 +181,7 @@ impl PipelineSource {
             PipelineSource::Trigger => "trigger",
             PipelineSource::Web => "web",
             PipelineSource::Webide => "web ide",
+            PipelineSource::Unknown => "unknown",
         }
         .into()
     }
@@ -279,7 +286,7 @@ impl From<ProjectDto> for Project {
             id: p.id,
             description: p.description,
             path: p.path_with_namespace,
-            default_branch: p.default_branch,
+            default_branch: p.default_branch.unwrap_or_default(),
             ssh_git_url: p.ssh_url_to_repo,
             url: p.web_url,
             last_activity_at: p.last_activity_at,
@@ -445,7 +452,7 @@ impl Pipeline {
             _ => self
                 .jobs
                 .as_ref()
-                .and_then(|jobs| jobs.iter().map(|j| j.finished_at).max().unwrap()),
+                .and_then(|jobs| jobs.iter().map(|j| j.finished_at).max().flatten()),
         }
     }
 }
