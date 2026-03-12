@@ -225,7 +225,7 @@ impl ClientConfig {
             per_page: self.request.per_page,
             include_statistics: true,
             archived: false,
-            membership: true,
+            membership: false,
             search_namespaces: true,
             ..Default::default()
         }
