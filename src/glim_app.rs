@@ -198,6 +198,32 @@ impl GlimApp {
                     .spawn_fetch_jobs(project_id, pipeline_id)
             },
 
+            // MR view events
+            GlimEvent::MrViewOpen(project_id, pipeline_id) => {
+                if let Some(project) = self.project_store.find(project_id) {
+                    let sha = project
+                        .pipeline(pipeline_id)
+                        .map(|p| p.sha.clone())
+                        .unwrap_or_default();
+                    if !sha.is_empty() {
+                        self.gitlab.spawn_fetch_mr(project_id, sha);
+                    }
+                }
+            },
+            GlimEvent::MrLoaded(project_id, mr) => {
+                self.gitlab.spawn_fetch_mr_notes(project_id, mr.iid);
+            },
+            GlimEvent::MrNotePost(project_id, mr_iid, body) => {
+                self.gitlab.spawn_post_mr_note(project_id, mr_iid, body.clone());
+            },
+            GlimEvent::MrNotePosted(project_id, mr_iid) => {
+                self.gitlab.spawn_fetch_mr_notes(project_id, mr_iid);
+            },
+            GlimEvent::MrAtlantisAction(project_id, mr_iid, action) => {
+                let body: compact_str::CompactString = action.comment_body().into();
+                self.dispatch(GlimEvent::MrNotePost(project_id, mr_iid, body));
+            },
+
             // configuration
             GlimEvent::ConfigUpdate(config) => {
                 let client_config = ClientConfig::from(config.clone())
