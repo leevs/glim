@@ -65,6 +65,7 @@ pub fn sample_pipeline_dto() -> PipelineDto {
         status: crate::domain::PipelineStatus::Success,
         source: crate::domain::PipelineSource::Push,
         branch: "main".into(),
+        sha: "abc123def456".into(),
         web_url: "https://gitlab.example.com/group/project/-/pipelines/456".into(),
         created_at: DateTime::parse_from_rfc3339("2023-01-01T00:00:00Z")
             .unwrap()
