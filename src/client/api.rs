@@ -285,6 +285,10 @@ impl GitlabApi {
             url.push_str("&membership=true");
         }
 
+        if let Some(level) = query.min_access_level {
+            url.push_str(&format_compact!("&min_access_level={}", level));
+        }
+
         url.push_str(&format_compact!("&per_page={}", query.per_page));
 
         url

@@ -73,6 +73,7 @@ pub struct ProjectDto {
     pub ssh_url_to_repo: CompactString,
     pub web_url: CompactString,
     pub last_activity_at: DateTime<Utc>,
+    #[serde(default)]
     pub statistics: StatisticsDto,
 }
 

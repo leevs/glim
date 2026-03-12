@@ -72,6 +72,8 @@ pub struct ProjectQuery {
     pub archived: bool,
     /// Only include projects where user is a member
     pub membership: bool,
+    /// Minimum access level for the authenticated user (10=Guest, 20=Reporter, 30=Developer, 40=Maintainer, 50=Owner)
+    pub min_access_level: Option<u32>,
     /// Search in namespaces
     pub search_namespaces: bool,
 }
@@ -226,6 +228,7 @@ impl ClientConfig {
             include_statistics: true,
             archived: false,
             membership: false,
+            min_access_level: Some(10),
             search_namespaces: true,
             ..Default::default()
         }
