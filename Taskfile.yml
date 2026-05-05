@@ -1,0 +1,101 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  build:
+    desc: Build glim (debug)
+    cmds:
+      - cargo build
+
+  build-release:
+    desc: Build glim (release, optimized)
+    cmds:
+      - cargo build --release
+
+  run:
+    desc: Run glim with current config
+    cmds:
+      - cargo run
+
+  run-debug:
+    desc: Run glim with HTTP response logging enabled
+    env:
+      GLIM_DEBUG: "1"
+    cmds:
+      - cargo run
+
+  install:
+    desc: Install glim to ~/.cargo/bin
+    cmds:
+      - cargo install --path .
+
+  test:
+    desc: Run all tests
+    cmds:
+      - cargo test
+
+  test-verbose:
+    desc: Run tests with output
+    cmds:
+      - cargo test -- --nocapture
+
+  check:
+    desc: Fast type-check without building
+    cmds:
+      - cargo check
+
+  lint:
+    desc: Run clippy linter
+    cmds:
+      - cargo clippy -- -D warnings
+
+  clean:
+    desc: Remove build artifacts
+    cmds:
+      - cargo clean
+
+  watch:
+    desc: Watch for changes and rebuild (requires cargo-watch)
+    cmds:
+      - cargo watch -x build
+
+  config-path:
+    desc: Print path to glim.toml config file
+    cmds:
+      - cargo run -- --print-config-path
+
+  config-edit:
+    desc: Open glim.toml in $EDITOR
+    cmds:
+      - $EDITOR ~/.config/glim/glim.toml
+
+  views-edit:
+    desc: Open views.toml in $EDITOR (create from example if missing)
+    cmds:
+      - |
+        VIEWS=~/.config/glim/views.toml
+        if [ ! -f "$VIEWS" ]; then
+          mkdir -p ~/.config/glim
+          cat > "$VIEWS" << 'EOF'
+        [views.all]
+        name = "All"
+        key = "1"
+
+        [views.mywork]
+        name = "My Work"
+        key = "2"
+        involvement = "contributor"
+        recent_days = 14
+
+        [views.reviewing]
+        name = "Reviewing"
+        key = "3"
+        involvement = "reviewer"
+        EOF
+          echo "Created $VIEWS with defaults"
+        fi
+        $EDITOR "$VIEWS"
