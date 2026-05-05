@@ -109,6 +109,12 @@ impl StatefulWidgets {
             GlimEvent::FilterClear => self.clear_filter(),
             GlimEvent::ApplyTemporaryFilter(filter) => self.apply_temporary_filter(filter.clone()),
 
+            GlimEvent::ViewSwitch(_) => {
+                self.project_table_state.select(Some(0));
+                self.filter_input_active = false;
+                self.filter_input_text = CompactString::default();
+            },
+
             _ => (),
         }
     }

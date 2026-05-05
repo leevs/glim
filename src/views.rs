@@ -32,20 +32,10 @@ impl Default for ViewsFile {
     fn default() -> Self {
         let mut views = BTreeMap::new();
         views.insert(
-            "all".into(),
-            ViewConfig {
-                name: "All".into(),
-                key: "1".into(),
-                search_filter: None,
-                recent_days: None,
-                involvement: None,
-            },
-        );
-        views.insert(
             "mywork".into(),
             ViewConfig {
                 name: "My Work".into(),
-                key: "2".into(),
+                key: "1".into(),
                 search_filter: None,
                 recent_days: Some(14),
                 involvement: Some(InvolvementFilter::Contributor),
@@ -55,10 +45,20 @@ impl Default for ViewsFile {
             "reviewing".into(),
             ViewConfig {
                 name: "Reviewing".into(),
-                key: "3".into(),
+                key: "2".into(),
                 search_filter: None,
                 recent_days: None,
                 involvement: Some(InvolvementFilter::Reviewer),
+            },
+        );
+        views.insert(
+            "all".into(),
+            ViewConfig {
+                name: "All".into(),
+                key: "3".into(),
+                search_filter: None,
+                recent_days: None,
+                involvement: None,
             },
         );
         Self { views }
