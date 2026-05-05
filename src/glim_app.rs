@@ -1,5 +1,11 @@
-use std::{path::PathBuf, sync::mpsc::Sender};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+    sync::mpsc::Sender,
+    time::Instant,
+};
 
+use chrono::Utc;
 use compact_str::CompactString;
 use ratatui::layout::Rect;
 use serde::{Deserialize, Serialize};
@@ -20,7 +26,10 @@ use crate::{
     result::GlimError,
     stores::{log_event, ProjectStore},
     ui::{widget::NotificationState, StatefulWidgets},
+    views::{InvolvementFilter, ViewConfig},
 };
+
+const VIEW_CACHE_TTL_SECS: u64 = 60;
 
 pub struct GlimApp {
     running: bool,
@@ -34,6 +43,11 @@ pub struct GlimApp {
     clipboard: arboard::Clipboard,
     log_reload_handle: LoggingReloadHandle,
     current_log_level: tracing::Level,
+    pub active_view_index: usize,
+    pub views: Vec<ViewConfig>,
+    current_user_id: Option<u64>,
+    view_project_cache: HashMap<usize, (HashSet<ProjectId>, Instant)>,
+    pub view_loading: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -72,11 +86,11 @@ impl GlimApp {
         gitlab: GitlabService,
         log_reload_handle: LoggingReloadHandle,
         config: &GlimConfig,
+        views: Vec<ViewConfig>,
     ) -> Self {
         let mut input = InputMultiplexer::new(sender.clone());
         input.push(Box::new(NormalModeProcessor::new(sender.clone())));
 
-        // Parse initial log level from config, defaulting to ERROR
         let current_log_level = config
             .log_level
             .as_ref()
@@ -95,6 +109,11 @@ impl GlimApp {
             clipboard: arboard::Clipboard::new().expect("failed to create clipboard"),
             log_reload_handle,
             current_log_level,
+            active_view_index: 0,
+            views,
+            current_user_id: None,
+            view_project_cache: HashMap::new(),
+            view_loading: false,
         }
     }
 
@@ -209,7 +228,7 @@ impl GlimApp {
                 if sha.is_empty() {
                     self.dispatch(GlimEvent::MrNotFound(project_id, pipeline_id));
                 } else {
-                    self.gitlab.spawn_fetch_mr(project_id, pipeline_id, sha);
+                    self.gitlab.spawn_fetch_mr(project_id, sha);
                 }
             },
             GlimEvent::MrNotFound(_, _) => {
@@ -335,6 +354,29 @@ impl GlimApp {
                 }
             },
 
+            GlimEvent::ViewSwitch(idx) => {
+                if idx < self.views.len() {
+                    self.active_view_index = idx;
+                    self.trigger_view_fetch(idx);
+                }
+            },
+
+            GlimEvent::CurrentUserLoaded(user_id) => {
+                self.current_user_id = Some(user_id);
+                // Fetch reviewer projects for any active reviewer view
+                let idx = self.active_view_index;
+                if let Some(view) = self.views.get(idx) {
+                    if view.involvement == Some(InvolvementFilter::Reviewer) {
+                        self.gitlab.spawn_fetch_reviewer_projects(idx, user_id);
+                    }
+                }
+            },
+
+            GlimEvent::ViewProjectsFetched(idx, ids) => {
+                self.view_project_cache.insert(idx, (ids, Instant::now()));
+                self.view_loading = false;
+            },
+
             _ => {},
         }
 
@@ -403,32 +445,92 @@ impl GlimApp {
     ) -> (Vec<Project>, Vec<usize>) {
         let all_projects = self.project_store.sorted_projects();
 
-        if let Some(filter) = temporary_filter {
-            if !filter.trim().is_empty() {
-                let filter_lower = filter.to_lowercase();
-                let mut filtered_projects = Vec::new();
-                let mut filtered_indices = Vec::new();
+        let view = self.views.get(self.active_view_index);
+        let cached_ids = self.view_project_cache.get(&self.active_view_index).map(|(ids, _)| ids);
 
-                for (index, project) in all_projects.iter().enumerate() {
-                    if project
-                        .path
-                        .to_lowercase()
-                        .contains(filter_lower.as_str())
-                        || project
-                            .description
-                            .as_ref()
-                            .is_some_and(|d| d.to_lowercase().contains(filter_lower.as_str()))
-                    {
-                        filtered_projects.push(project.clone());
-                        filtered_indices.push(index);
-                    }
+        // Determine combined text filter: live input takes precedence, then view's static filter
+        let text_filter = temporary_filter
+            .as_ref()
+            .filter(|f| !f.trim().is_empty())
+            .cloned()
+            .or_else(|| view.and_then(|v| v.search_filter.clone()));
+
+        let cutoff = view.and_then(|v| v.recent_days).map(|days| {
+            Utc::now() - chrono::Duration::days(days as i64)
+        });
+
+        let mut filtered_projects = Vec::new();
+        let mut filtered_indices = Vec::new();
+
+        for (index, project) in all_projects.iter().enumerate() {
+            // Involvement filter: if view has cached IDs, project must be in the set
+            if let Some(ids) = cached_ids {
+                if view.and_then(|v| v.involvement.as_ref()).is_some() && !ids.contains(&project.id) {
+                    continue;
                 }
+            }
 
-                return (filtered_projects, filtered_indices);
+            // Recent days filter: check project's last activity
+            if let Some(cutoff_dt) = cutoff {
+                if project.last_activity_at < cutoff_dt {
+                    continue;
+                }
+            }
+
+            // Text filter on name/description
+            if let Some(ref filter) = text_filter {
+                let filter_lower = filter.to_lowercase();
+                let matches = project.path.to_lowercase().contains(filter_lower.as_str())
+                    || project
+                        .description
+                        .as_ref()
+                        .is_some_and(|d| d.to_lowercase().contains(filter_lower.as_str()));
+                if !matches {
+                    continue;
+                }
+            }
+
+            filtered_projects.push(project.clone());
+            filtered_indices.push(index);
+        }
+
+        (filtered_projects, filtered_indices)
+    }
+
+    fn trigger_view_fetch(&mut self, idx: usize) {
+        let view = match self.views.get(idx) {
+            Some(v) => v.clone(),
+            None => return,
+        };
+
+        let involvement = match &view.involvement {
+            Some(inv) => inv.clone(),
+            None => return, // No involvement filter — no fetch needed
+        };
+
+        // Check cache freshness
+        if let Some((_, cached_at)) = self.view_project_cache.get(&idx) {
+            if cached_at.elapsed().as_secs() < VIEW_CACHE_TTL_SECS {
+                return;
             }
         }
 
-        (all_projects.to_vec(), (0..all_projects.len()).collect())
+        self.view_loading = true;
+
+        match involvement {
+            InvolvementFilter::Contributor => {
+                let after = Utc::now() - chrono::Duration::days(view.recent_days.unwrap_or(14) as i64);
+                self.gitlab.spawn_fetch_contributor_projects(idx, after);
+            },
+            InvolvementFilter::Reviewer => {
+                if let Some(user_id) = self.current_user_id {
+                    self.gitlab.spawn_fetch_reviewer_projects(idx, user_id);
+                } else {
+                    // Fetch user first; reviewer fetch triggered on CurrentUserLoaded
+                    self.gitlab.spawn_fetch_current_user();
+                }
+            },
+        }
     }
 
     pub fn sender(&self) -> Sender<GlimEvent> {

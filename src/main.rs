@@ -29,6 +29,7 @@ mod stores;
 mod theme;
 mod tui;
 mod ui;
+mod views;
 
 /// A TUI for monitoring GitLab CI/CD pipelines and projects
 #[derive(Parser, Debug)]

@@ -13,6 +13,8 @@ use super::{
 };
 use compact_str::CompactString;
 
+use std::collections::HashSet;
+
 use crate::{
     dispatcher::Dispatcher,
     domain::MrView,
@@ -301,6 +303,102 @@ impl GitlabService {
                 },
                 Err(e) => {
                     error!(error = %e, "Failed to fetch MR notes");
+                    let glim_error = crate::result::GlimError::from(&e);
+                    sender.dispatch(GlimEvent::AppError(glim_error));
+                },
+            }
+        });
+    }
+
+    pub fn spawn_fetch_current_user(&self) {
+        let api = self.api.clone();
+        let sender = self.sender.clone();
+        self.handle.spawn(async move {
+            match api.get_current_user().await {
+                Ok(user) => sender.dispatch(GlimEvent::CurrentUserLoaded(user.id)),
+                Err(e) => {
+                    error!(error = %e, "Failed to fetch current user");
+                    let glim_error = crate::result::GlimError::from(&e);
+                    sender.dispatch(GlimEvent::AppError(glim_error));
+                },
+            }
+        });
+    }
+
+    pub fn spawn_fetch_contributor_projects(&self, view_index: usize, after: DateTime<Utc>) {
+        let api = self.api.clone();
+        let sender = self.sender.clone();
+        self.handle.spawn(async move {
+            match api.get_push_event_project_ids(after).await {
+                Ok(events) => {
+                    let ids: HashSet<ProjectId> = events.into_iter().map(|e| e.project_id).collect();
+                    sender.dispatch(GlimEvent::ViewProjectsFetched(view_index, ids));
+                },
+                Err(e) => {
+                    error!(error = %e, "Failed to fetch contributor projects");
+                    let glim_error = crate::result::GlimError::from(&e);
+                    sender.dispatch(GlimEvent::AppError(glim_error));
+                },
+            }
+        });
+    }
+
+    pub fn spawn_fetch_reviewer_projects(&self, view_index: usize, user_id: u64) {
+        let api = self.api.clone();
+        let sender = self.sender.clone();
+        self.handle.spawn(async move {
+            match api.get_reviewer_mr_project_ids(user_id).await {
+                Ok(mrs) => {
+                    let ids: HashSet<ProjectId> = mrs.into_iter().map(|m| m.project_id).collect();
+                    sender.dispatch(GlimEvent::ViewProjectsFetched(view_index, ids));
+                },
+                Err(e) => {
+                    error!(error = %e, "Failed to fetch reviewer projects");
+                    let glim_error = crate::result::GlimError::from(&e);
+                    sender.dispatch(GlimEvent::AppError(glim_error));
+                },
+            }
+        });
+    }
+
+    pub fn spawn_retry_pipeline(&self, project_id: ProjectId, pipeline_id: PipelineId) {
+        let api = self.api.clone();
+        let sender = self.sender.clone();
+        self.handle.spawn(async move {
+            match api.retry_pipeline(project_id, pipeline_id).await {
+                Ok(_) => sender.dispatch(GlimEvent::PipelinesFetch(project_id)),
+                Err(e) => {
+                    error!(error = %e, "Failed to retry pipeline");
+                    let glim_error = crate::result::GlimError::from(&e);
+                    sender.dispatch(GlimEvent::AppError(glim_error));
+                },
+            }
+        });
+    }
+
+    pub fn spawn_cancel_pipeline(&self, project_id: ProjectId, pipeline_id: PipelineId) {
+        let api = self.api.clone();
+        let sender = self.sender.clone();
+        self.handle.spawn(async move {
+            match api.cancel_pipeline(project_id, pipeline_id).await {
+                Ok(_) => sender.dispatch(GlimEvent::PipelinesFetch(project_id)),
+                Err(e) => {
+                    error!(error = %e, "Failed to cancel pipeline");
+                    let glim_error = crate::result::GlimError::from(&e);
+                    sender.dispatch(GlimEvent::AppError(glim_error));
+                },
+            }
+        });
+    }
+
+    pub fn spawn_delete_pipeline(&self, project_id: ProjectId, pipeline_id: PipelineId) {
+        let api = self.api.clone();
+        let sender = self.sender.clone();
+        self.handle.spawn(async move {
+            match api.delete_pipeline(project_id, pipeline_id).await {
+                Ok(_) => sender.dispatch(GlimEvent::PipelinesFetch(project_id)),
+                Err(e) => {
+                    error!(error = %e, "Failed to delete pipeline");
                     let glim_error = crate::result::GlimError::from(&e);
                     sender.dispatch(GlimEvent::AppError(glim_error));
                 },

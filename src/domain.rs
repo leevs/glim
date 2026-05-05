@@ -660,3 +660,18 @@ impl From<NoteDto> for MrNote {
         }
     }
 }
+
+#[derive(Debug, Deserialize)]
+pub struct CurrentUserDto {
+    pub id: u64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PushEventDto {
+    pub project_id: ProjectId,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ReviewerMrDto {
+    pub project_id: ProjectId,
+}

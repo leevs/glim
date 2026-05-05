@@ -6,6 +6,8 @@ use ratatui::{
 use tachyonfx::Duration;
 use tracing::debug;
 
+use ratatui::widgets::Widget;
+
 use crate::{
     dispatcher::Dispatcher,
     effect_registry::EffectRegistry,
@@ -13,7 +15,7 @@ use crate::{
     theme::theme,
     ui::{
         popup::{ConfigPopup, MrViewPopup, PipelineActionsPopup, ProjectDetailsPopup},
-        widget::{Notification, ProjectsTable},
+        widget::{Notification, ProjectsTable, ViewTabs},
         StatefulWidgets,
     },
 };
@@ -28,17 +30,26 @@ pub fn render_main_ui(
 
     let last_tick = widget_states.last_frame;
     let frame_area = f.area();
-    let layout =
-        Layout::new(Direction::Horizontal, [Constraint::Percentage(100)]).split(frame_area);
 
-    render_projects_table(f, app, widget_states, layout[0]);
-    render_popups(f, widget_states, layout[0], last_tick);
+    let layout = Layout::new(Direction::Vertical, [
+        Constraint::Length(1),
+        Constraint::Min(0),
+    ])
+    .split(frame_area);
+
+    render_view_tabs(f, app, layout[0]);
+    render_projects_table(f, app, widget_states, layout[1]);
+    render_popups(f, widget_states, layout[1], last_tick);
     render_effects(f, effects, last_tick, frame_area);
 
-    // Handle screen capture if requested
     if widget_states.capture_screen_requested {
         handle_screen_capture(f, app, widget_states);
     }
+}
+
+fn render_view_tabs(f: &mut Frame, app: &GlimApp, area: Rect) {
+    let tabs = ViewTabs::new(&app.views, app.active_view_index, app.view_loading);
+    tabs.render(area, f.buffer_mut());
 }
 
 fn render_projects_table(

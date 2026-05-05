@@ -34,6 +34,10 @@ impl NormalModeProcessor {
             KeyCode::Char('q') => Some(GlimEvent::AppExit),
             KeyCode::Char('r') => Some(GlimEvent::ProjectsFetch),
             KeyCode::Char('w') => self.selected.map(GlimEvent::ProjectOpenUrl),
+            KeyCode::Char(c) if c.is_ascii_digit() && c != '0' => {
+                let idx = (c as u8 - b'1') as usize;
+                Some(GlimEvent::ViewSwitch(idx))
+            },
             KeyCode::F(12) => Some(GlimEvent::ScreenCapture),
             KeyCode::Up => Some(GlimEvent::ProjectPrevious),
             KeyCode::Down => Some(GlimEvent::ProjectNext),
