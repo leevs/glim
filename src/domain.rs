@@ -202,6 +202,8 @@ impl PipelineSource {
             self,
             PipelineSource::Api
                 | PipelineSource::Chat
+                | PipelineSource::MergeRequestEvent
+                | PipelineSource::ExternalPullRequestEvent
                 | PipelineSource::ParentPipeline
                 | PipelineSource::Push
                 | PipelineSource::Schedule
