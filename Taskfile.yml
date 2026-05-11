@@ -31,7 +31,7 @@ tasks:
   install:
     desc: Install glim to ~/.cargo/bin
     cmds:
-      - cargo install --path .
+      - cargo install --force --path .
 
   test:
     desc: Run all tests
