@@ -578,6 +578,7 @@ impl IconRepresentable for Pipeline {
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
 pub struct MrAuthorDto {
     #[serde(default)]
     pub username: CompactString,
@@ -586,6 +587,7 @@ pub struct MrAuthorDto {
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
 pub struct MrDto {
     pub iid: MrIid,
     #[serde(default)]
@@ -601,6 +603,7 @@ pub struct MrDto {
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
+#[allow(dead_code)]
 pub struct NoteDto {
     #[serde(default)]
     pub id: u64,
@@ -615,6 +618,7 @@ pub struct NoteDto {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct MrView {
     pub iid: MrIid,
     pub project_id: ProjectId,
@@ -627,6 +631,7 @@ pub struct MrView {
 }
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct MrNote {
     pub id: u64,
     pub body: CompactString,

@@ -63,13 +63,17 @@ pub enum GlimEvent {
     MrViewClose,
     MrLoaded(ProjectId, Box<MrView>),
     MrNotFound(ProjectId, PipelineId),
+    #[allow(dead_code)]
     MrNotesFetch(ProjectId, MrIid),
     MrNotesLoaded(ProjectId, MrIid, Vec<NoteDto>),
     MrNotePost(ProjectId, MrIid, CompactString),
     MrNotePosted(ProjectId, MrIid),
     MrAtlantisAction(ProjectId, MrIid, AtlantisAction),
+    #[allow(dead_code)]
     PipelineRetry(ProjectId, PipelineId),
+    #[allow(dead_code)]
     PipelineCancel(ProjectId, PipelineId),
+    #[allow(dead_code)]
     PipelineDelete(ProjectId, PipelineId),
     ViewSwitch(usize),
     CurrentUserLoaded(u64),

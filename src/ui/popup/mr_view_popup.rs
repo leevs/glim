@@ -22,6 +22,7 @@ pub enum MrViewMode {
 }
 
 pub struct MrViewState {
+    #[allow(dead_code)]
     pub project_id: ProjectId,
     pub mr: Option<MrView>,
     pub loading: bool,
@@ -78,6 +79,7 @@ impl MrViewState {
         }
     }
 
+    #[allow(dead_code)]
     pub fn selected_note(&self) -> Option<&MrNote> {
         self.mr.as_ref().and_then(|mr| {
             self.list_state
