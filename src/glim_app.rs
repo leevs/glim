@@ -49,6 +49,7 @@ pub struct GlimApp {
     view_project_cache: HashMap<usize, (HashSet<ProjectId>, Instant)>,
     pub view_loading: bool,
     pending_command: Option<Vec<String>>,
+    pub projects_loading: bool,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -116,6 +117,7 @@ impl GlimApp {
             view_project_cache: HashMap::new(),
             view_loading: false,
             pending_command: None,
+            projects_loading: false,
         }
     }
 
@@ -220,6 +222,7 @@ impl GlimApp {
                         .map(|days| Utc::now() - chrono::Duration::days(days as i64))
                 });
 
+                self.projects_loading = true;
                 self.gitlab.spawn_fetch_projects(updated_after)
             },
             GlimEvent::JobsFetch(project_id, pipeline_id) => {
@@ -428,6 +431,10 @@ impl GlimApp {
             GlimEvent::ViewProjectsFetched(idx, ids) => {
                 self.view_project_cache.insert(idx, (ids, Instant::now()));
                 self.view_loading = false;
+            },
+
+            GlimEvent::ProjectsLoaded(_) => {
+                self.projects_loading = false;
             },
 
             _ => {},

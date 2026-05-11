@@ -67,6 +67,7 @@ fn render_projects_table(
         &filtered_projects,
         widget_states.filter_input_active,
         &widget_states.filter_input_text,
+        app.projects_loading,
     );
     f.render_stateful_widget(projects, area, &mut widget_states.project_table_state);
 }
