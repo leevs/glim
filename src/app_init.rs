@@ -57,6 +57,7 @@ pub async fn initialize_app(
         views,
     );
     app.dispatch(GlimEvent::ProjectsFetch);
+    app.dispatch(GlimEvent::ViewSwitch(0));
     if config.gitlab_url.is_empty() || config.gitlab_token.is_empty() {
         app.dispatch(GlimEvent::ConfigOpen);
     }

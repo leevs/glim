@@ -211,6 +211,15 @@ impl GlimApp {
                     .map(|p| p.last_activity_at)
                     .map_or_else(|| latest_activity, Some);
 
+                // On initial load (store empty), use active view's recent_days as floor
+                // to avoid fetching all projects when My Work only needs last N days
+                let updated_after = updated_after.or_else(|| {
+                    self.views
+                        .get(self.active_view_index)
+                        .and_then(|v| v.recent_days)
+                        .map(|days| Utc::now() - chrono::Duration::days(days as i64))
+                });
+
                 self.gitlab.spawn_fetch_projects(updated_after)
             },
             GlimEvent::JobsFetch(project_id, pipeline_id) => {
