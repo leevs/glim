@@ -95,4 +95,16 @@ impl Tui {
             .map_err(|_| GeneralError("failed to show cursor".into()))?;
         Ok(())
     }
+
+    /// Restore terminal after suspending for an external TUI command (e.g. glab ci view).
+    /// Waits briefly for the external process to fully release the terminal, re-enters
+    /// alternate screen, then drains all events that accumulated during suspension so
+    /// stale ticks and key events from the external process don't bleed into glim.
+    pub fn restore_after_suspend(&mut self) -> Result<(), GlimError> {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        self.enter()?;
+        // Drain stale events (AppTick backlog + any key events glab left behind)
+        while self.events.try_next().is_some() {}
+        Ok(())
+    }
 }

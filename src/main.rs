@@ -118,7 +118,7 @@ fn main() -> Result<()> {
             let _ = std::process::Command::new(&cmd[0])
                 .args(&cmd[1..])
                 .status();
-            tui.enter()?;
+            tui.restore_after_suspend()?;
         }
 
         tui.draw(|f| render_main_ui(f, &app, &mut widget_states, &mut effects))?;
