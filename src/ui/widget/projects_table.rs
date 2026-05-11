@@ -45,6 +45,7 @@ impl StatefulWidget for ProjectsTable<'_> {
         } else {
             Shortcuts::from(vec![
                 ("q", "quit"),
+                ("v", "view pipeline"),
                 ("w", "open web"),
                 ("c", "config"),
                 ("a", "last notification"),

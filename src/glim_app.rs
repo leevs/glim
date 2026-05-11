@@ -48,6 +48,7 @@ pub struct GlimApp {
     current_user_id: Option<u64>,
     view_project_cache: HashMap<usize, (HashSet<ProjectId>, Instant)>,
     pub view_loading: bool,
+    pending_command: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -114,6 +115,7 @@ impl GlimApp {
             current_user_id: None,
             view_project_cache: HashMap::new(),
             view_loading: false,
+            pending_command: None,
         }
     }
 
@@ -354,6 +356,48 @@ impl GlimApp {
                 }
             },
 
+            GlimEvent::PipelineViewTuiLatest(project_id) => {
+                let project = self.project_store.find(project_id);
+                match project.and_then(|p| p.pipelines.as_ref()?.first().map(|pl| (p.path.clone(), pl.id))) {
+                    Some((path, pipeline_id)) => {
+                        self.pending_command = Some(vec![
+                            "glab".into(),
+                            "ci".into(),
+                            "view".into(),
+                            "-R".into(),
+                            path.to_string(),
+                            "--pipelineid".into(),
+                            pipeline_id.to_string(),
+                        ]);
+                    },
+                    None => self.dispatch(GlimEvent::AppError(GlimError::GeneralError(
+                        "No pipelines loaded — press r to refresh".into(),
+                    ))),
+                }
+            },
+
+            GlimEvent::PipelineViewTui(project_id, pipeline_id) => {
+                let path = self.project_store
+                    .find(project_id)
+                    .map(|p| p.path.to_string());
+                match path {
+                    Some(path) => {
+                        self.pending_command = Some(vec![
+                            "glab".into(),
+                            "ci".into(),
+                            "view".into(),
+                            "-R".into(),
+                            path,
+                            "--pipelineid".into(),
+                            pipeline_id.to_string(),
+                        ]);
+                    },
+                    None => self.dispatch(GlimEvent::AppError(GlimError::GeneralError(
+                        "Project not found".into(),
+                    ))),
+                }
+            },
+
             GlimEvent::ViewSwitch(idx) => {
                 if idx < self.views.len() {
                     self.active_view_index = idx;
@@ -539,6 +583,10 @@ impl GlimApp {
 
     pub fn is_running(&self) -> bool {
         self.running
+    }
+
+    pub fn take_pending_command(&mut self) -> Option<Vec<String>> {
+        self.pending_command.take()
     }
 
     pub fn pop_notice(&mut self) -> Option<Notice> {

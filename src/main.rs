@@ -112,6 +112,15 @@ fn main() -> Result<()> {
             widget_states.apply(&app, &mut effects, &event);
             app.apply(event, &mut widget_states, &mut effects);
         });
+
+        if let Some(cmd) = app.take_pending_command() {
+            tui.exit()?;
+            let _ = std::process::Command::new(&cmd[0])
+                .args(&cmd[1..])
+                .status();
+            tui.enter()?;
+        }
+
         tui.draw(|f| render_main_ui(f, &app, &mut widget_states, &mut effects))?;
     }
 

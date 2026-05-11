@@ -74,6 +74,8 @@ pub enum GlimEvent {
     ViewSwitch(usize),
     CurrentUserLoaded(u64),
     ViewProjectsFetched(usize, std::collections::HashSet<crate::id::ProjectId>),
+    PipelineViewTui(ProjectId, PipelineId),
+    PipelineViewTuiLatest(ProjectId),
 }
 
 #[derive(Debug, Clone)]
@@ -153,6 +155,8 @@ impl GlimEvent {
             GlimEvent::ViewSwitch(_) => "ViewSwitch",
             GlimEvent::CurrentUserLoaded(_) => "CurrentUserLoaded",
             GlimEvent::ViewProjectsFetched(_, _) => "ViewProjectsFetched",
+            GlimEvent::PipelineViewTui(_, _) => "PipelineViewTui",
+            GlimEvent::PipelineViewTuiLatest(_) => "PipelineViewTuiLatest",
         }
     }
 }

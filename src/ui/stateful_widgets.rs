@@ -175,12 +175,14 @@ impl StatefulWidgets {
         let actions = if let Some(job) = failed_job {
             vec![
                 GlimEvent::JobOpenUrl(project.id, pipeline_id, job.id),
+                GlimEvent::PipelineViewTui(project.id, pipeline_id),
                 GlimEvent::PipelineOpenUrl(project.id, pipeline_id),
                 GlimEvent::ProjectOpenUrl(project.id),
                 GlimEvent::JobLogFetch(project.id, pipeline_id),
             ]
         } else {
             vec![
+                GlimEvent::PipelineViewTui(project.id, pipeline_id),
                 GlimEvent::PipelineOpenUrl(project.id, pipeline_id),
                 GlimEvent::ProjectOpenUrl(project.id),
             ]
