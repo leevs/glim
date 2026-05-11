@@ -2,7 +2,7 @@
 
 use std::sync::RwLock;
 
-use chrono::Local;
+use chrono::{DateTime, Local, Utc};
 use compact_str::{format_compact, CompactString};
 use reqwest::{Client, RequestBuilder, Response};
 use serde::Deserialize;
@@ -12,8 +12,9 @@ use super::{
     config::{ClientConfig, PipelineQuery, ProjectQuery},
     error::{ClientError, Result},
 };
+
 use crate::{
-    domain::{JobDto, MrDto, NoteDto, PipelineDto, ProjectDto},
+    domain::{CurrentUserDto, JobDto, MrDto, NoteDto, PipelineDto, ProjectDto, PushEventDto, ReviewerMrDto},
     id::{JobId, MrIid, PipelineId, ProjectId},
 };
 
@@ -236,13 +237,23 @@ impl GitlabApi {
         self.handle_response(response).await
     }
 
-    /// Create authenticated request builder
+    /// Create authenticated GET request builder
     fn authenticated_request(&self, url: &str) -> RequestBuilder {
         let client = self.client.read().unwrap();
         let private_token = self.config.read().unwrap().private_token.clone();
-        client
-            .get(url)
-            .header("PRIVATE-TOKEN", private_token.as_str())
+        client.get(url).header("PRIVATE-TOKEN", private_token.as_str())
+    }
+
+    fn authenticated_post(&self, url: &str) -> RequestBuilder {
+        let client = self.client.read().unwrap();
+        let private_token = self.config.read().unwrap().private_token.clone();
+        client.post(url).header("PRIVATE-TOKEN", private_token.as_str())
+    }
+
+    fn authenticated_delete(&self, url: &str) -> RequestBuilder {
+        let client = self.client.read().unwrap();
+        let private_token = self.config.read().unwrap().private_token.clone();
+        client.delete(url).header("PRIVATE-TOKEN", private_token.as_str())
     }
 
     /// Handle HTTP response and deserialize JSON
@@ -323,6 +334,92 @@ impl GitlabApi {
                     )))
                 }
             },
+        }
+    }
+
+    pub async fn get_current_user(&self) -> Result<CurrentUserDto> {
+        let url = {
+            let config = self.config.read().unwrap();
+            format_compact!("{}/user", config.base_url)
+        };
+        self.get_json(&url).await
+    }
+
+    pub async fn get_push_event_project_ids(&self, after: DateTime<Utc>) -> Result<Vec<PushEventDto>> {
+        let url = {
+            let config = self.config.read().unwrap();
+            format_compact!(
+                "{}/events?action=pushed&after={}&per_page=100",
+                config.base_url,
+                after.to_rfc3339()
+            )
+        };
+        self.get_json(&url).await
+    }
+
+    pub async fn get_reviewer_mr_project_ids(&self, user_id: u64) -> Result<Vec<ReviewerMrDto>> {
+        let url = {
+            let config = self.config.read().unwrap();
+            format_compact!(
+                "{}/merge_requests?reviewer_id={}&state=opened&per_page=100",
+                config.base_url,
+                user_id
+            )
+        };
+        self.get_json(&url).await
+    }
+
+    pub async fn retry_pipeline(&self, project_id: ProjectId, pipeline_id: PipelineId) -> Result<()> {
+        let url = {
+            let config = self.config.read().unwrap();
+            format_compact!(
+                "{}/projects/{}/pipelines/{}/retry",
+                config.base_url, project_id, pipeline_id
+            )
+        };
+        let response = self.authenticated_post(&url).send().await?;
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else {
+            let body = response.text().await.unwrap_or_default();
+            self.handle_error_response::<()>(status.as_u16(), &body)
+        }
+    }
+
+    pub async fn cancel_pipeline(&self, project_id: ProjectId, pipeline_id: PipelineId) -> Result<()> {
+        let url = {
+            let config = self.config.read().unwrap();
+            format_compact!(
+                "{}/projects/{}/pipelines/{}/cancel",
+                config.base_url, project_id, pipeline_id
+            )
+        };
+        let response = self.authenticated_post(&url).send().await?;
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else {
+            let body = response.text().await.unwrap_or_default();
+            self.handle_error_response::<()>(status.as_u16(), &body)
+        }
+    }
+
+    pub async fn delete_pipeline(&self, project_id: ProjectId, pipeline_id: PipelineId) -> Result<()> {
+        let url = {
+            let config = self.config.read().unwrap();
+            format_compact!(
+                "{}/projects/{}/pipelines/{}",
+                config.base_url, project_id, pipeline_id
+            )
+        };
+        let response = self.authenticated_delete(&url).send().await?;
+        let status = response.status();
+        if status.is_success() {
+            Ok(())
+        } else {
+            let body = response.text().await.unwrap_or_default();
+            self.handle_error_response::<()>(status.as_u16(), &body)
         }
     }
 

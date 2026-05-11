@@ -6,6 +6,7 @@ use tracing_appender::non_blocking::WorkerGuard;
 
 use crate::{
     client::{ClientConfig, GitlabApi, GitlabPoller, GitlabService},
+    config::default_views_path,
     dispatcher::Dispatcher,
     effect_registry::EffectRegistry,
     event::{EventHandler, GlimEvent},
@@ -14,6 +15,7 @@ use crate::{
     result::{GlimError, Result},
     tui::Tui,
     ui::StatefulWidgets,
+    views::ViewsFile,
 };
 
 pub struct AppComponents {
@@ -44,16 +46,18 @@ pub async fn initialize_app(
     let (service, poller) =
         create_gitlab_service_and_poller(sender.clone(), config.clone(), debug).await?;
 
-    // We need to move the log_reload_handle into the app, so we can't use it in AppComponents
-    // Instead, we'll create a separate handle for the app and keep one for external use
+    let views = load_views();
+
     let app = GlimApp::new(
         sender.clone(),
         config_path,
         service,
         log_reload_handle,
         &config,
+        views,
     );
     app.dispatch(GlimEvent::ProjectsFetch);
+    app.dispatch(GlimEvent::ViewSwitch(0));
     if config.gitlab_url.is_empty() || config.gitlab_token.is_empty() {
         app.dispatch(GlimEvent::ConfigOpen);
     }
@@ -105,6 +109,17 @@ fn initialize_terminal(event_handler: EventHandler) -> Result<Tui> {
     let mut tui = Tui::new(terminal, event_handler);
     tui.enter()?;
     Ok(tui)
+}
+
+fn load_views() -> Vec<crate::views::ViewConfig> {
+    let path = default_views_path();
+    if path.exists() {
+        match confy::load_path::<ViewsFile>(&path) {
+            Ok(file) => return file.sorted_views(),
+            Err(e) => tracing::warn!("Failed to load views.toml: {e}, using defaults"),
+        }
+    }
+    ViewsFile::default().sorted_views()
 }
 
 async fn create_gitlab_service_and_poller(

@@ -68,6 +68,14 @@ pub enum GlimEvent {
     MrNotePost(ProjectId, MrIid, CompactString),
     MrNotePosted(ProjectId, MrIid),
     MrAtlantisAction(ProjectId, MrIid, AtlantisAction),
+    PipelineRetry(ProjectId, PipelineId),
+    PipelineCancel(ProjectId, PipelineId),
+    PipelineDelete(ProjectId, PipelineId),
+    ViewSwitch(usize),
+    CurrentUserLoaded(u64),
+    ViewProjectsFetched(usize, std::collections::HashSet<crate::id::ProjectId>),
+    PipelineViewTui(ProjectId, PipelineId),
+    PipelineViewTuiLatest(ProjectId),
 }
 
 #[derive(Debug, Clone)]
@@ -141,6 +149,14 @@ impl GlimEvent {
             GlimEvent::MrNotePost(_, _, _) => "MrNotePost",
             GlimEvent::MrNotePosted(_, _) => "MrNotePosted",
             GlimEvent::MrAtlantisAction(_, _, _) => "MrAtlantisAction",
+            GlimEvent::PipelineRetry(_, _) => "PipelineRetry",
+            GlimEvent::PipelineCancel(_, _) => "PipelineCancel",
+            GlimEvent::PipelineDelete(_, _) => "PipelineDelete",
+            GlimEvent::ViewSwitch(_) => "ViewSwitch",
+            GlimEvent::CurrentUserLoaded(_) => "CurrentUserLoaded",
+            GlimEvent::ViewProjectsFetched(_, _) => "ViewProjectsFetched",
+            GlimEvent::PipelineViewTui(_, _) => "PipelineViewTui",
+            GlimEvent::PipelineViewTuiLatest(_) => "PipelineViewTuiLatest",
         }
     }
 }

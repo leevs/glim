@@ -202,6 +202,8 @@ impl PipelineSource {
             self,
             PipelineSource::Api
                 | PipelineSource::Chat
+                | PipelineSource::MergeRequestEvent
+                | PipelineSource::ExternalPullRequestEvent
                 | PipelineSource::ParentPipeline
                 | PipelineSource::Push
                 | PipelineSource::Schedule
@@ -659,4 +661,19 @@ impl From<NoteDto> for MrNote {
             is_atlantis,
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CurrentUserDto {
+    pub id: u64,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct PushEventDto {
+    pub project_id: ProjectId,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ReviewerMrDto {
+    pub project_id: ProjectId,
 }

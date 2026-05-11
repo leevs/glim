@@ -42,6 +42,7 @@ impl PipelineActionsPopupState {
                 let action = match action {
                     GlimEvent::JobOpenUrl(_, _, _) => "browse to failed job",
                     GlimEvent::PipelineOpenUrl(_, _) => "browse to pipeline",
+                    GlimEvent::PipelineViewTui(_, _) => "view pipeline in TUI (glab)",
                     GlimEvent::ProjectOpenUrl(_) => "browse to project",
                     GlimEvent::JobLogFetch(_, _) => "download failed job log to clipboard",
                     _ => panic!("unsupported action"),

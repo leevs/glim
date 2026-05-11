@@ -3,6 +3,7 @@ mod notification;
 mod pipeline_table;
 mod projects_table;
 mod shortcuts;
+mod view_tabs;
 
 use chrono::{DateTime, Local};
 pub use input_field::*;
@@ -11,6 +12,7 @@ pub use pipeline_table::*;
 pub use projects_table::*;
 use ratatui::prelude::{Line, Text};
 pub use shortcuts::*;
+pub use view_tabs::ViewTabs;
 
 use crate::theme::theme;
 

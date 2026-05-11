@@ -15,6 +15,14 @@ pub fn default_config_path() -> PathBuf {
     }
 }
 
+pub fn default_views_path() -> PathBuf {
+    if let Some(dirs) = BaseDirs::new() {
+        dirs.home_dir().join(".config").join("glim").join("views.toml")
+    } else {
+        PathBuf::from("views.toml")
+    }
+}
+
 pub fn save_config(config_file: &PathBuf, config: GlimConfig) -> Result<()> {
     confy::store_path(config_file, &config)
         .map_err(|e| GlimError::config_save_error(config_file.clone(), e))?;

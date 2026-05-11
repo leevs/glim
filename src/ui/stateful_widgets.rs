@@ -109,6 +109,12 @@ impl StatefulWidgets {
             GlimEvent::FilterClear => self.clear_filter(),
             GlimEvent::ApplyTemporaryFilter(filter) => self.apply_temporary_filter(filter.clone()),
 
+            GlimEvent::ViewSwitch(_) => {
+                self.project_table_state.select(Some(0));
+                self.filter_input_active = false;
+                self.filter_input_text = CompactString::default();
+            },
+
             _ => (),
         }
     }
@@ -169,12 +175,14 @@ impl StatefulWidgets {
         let actions = if let Some(job) = failed_job {
             vec![
                 GlimEvent::JobOpenUrl(project.id, pipeline_id, job.id),
+                GlimEvent::PipelineViewTui(project.id, pipeline_id),
                 GlimEvent::PipelineOpenUrl(project.id, pipeline_id),
                 GlimEvent::ProjectOpenUrl(project.id),
                 GlimEvent::JobLogFetch(project.id, pipeline_id),
             ]
         } else {
             vec![
+                GlimEvent::PipelineViewTui(project.id, pipeline_id),
                 GlimEvent::PipelineOpenUrl(project.id, pipeline_id),
                 GlimEvent::ProjectOpenUrl(project.id),
             ]

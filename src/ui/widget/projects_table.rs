@@ -17,10 +17,11 @@ pub struct ProjectsTable<'a> {
     rows: Vec<Row<'a>>,
     filter_active: bool,
     filter_text: &'a str,
+    loading: bool,
 }
 
 impl<'a> ProjectsTable<'a> {
-    pub fn new(projects: &'a [Project], filter_active: bool, filter_text: &'a str) -> Self {
+    pub fn new(projects: &'a [Project], filter_active: bool, filter_text: &'a str, loading: bool) -> Self {
         Self {
             rows: projects
                 .iter()
@@ -30,6 +31,7 @@ impl<'a> ProjectsTable<'a> {
                 .collect(),
             filter_active,
             filter_text,
+            loading,
         }
     }
 }
@@ -45,6 +47,7 @@ impl StatefulWidget for ProjectsTable<'_> {
         } else {
             Shortcuts::from(vec![
                 ("q", "quit"),
+                ("v", "view pipeline"),
                 ("w", "open web"),
                 ("c", "config"),
                 ("a", "last notification"),
@@ -86,6 +89,23 @@ impl StatefulWidget for ProjectsTable<'_> {
             .render(table_area, buf);
 
         let content_area = table_area.inner(Margin::new(2, 1));
+
+        if self.loading && self.rows.is_empty() {
+            let msg = "Fetching pipelines…";
+            let x = content_area.x + content_area.width.saturating_sub(msg.len() as u16) / 2;
+            let y = content_area.y + content_area.height / 2;
+            if y < content_area.bottom() {
+                let loading_line = Line::from(
+                    Span::styled(msg, theme().project_description)
+                );
+                loading_line.render(
+                    Rect::new(x, y, msg.len() as u16, 1),
+                    buf,
+                );
+            }
+            return;
+        }
+
         let table = Table::new(self.rows, PROJECT_COLUMN_CONSTRAINTS)
             .row_highlight_style(theme().highlight_symbol)
             .column_spacing(1);
